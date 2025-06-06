@@ -104,6 +104,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFaceApiModelsLoading, setIsFaceApiModelsLoading] = useState<boolean>(true);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -498,7 +499,7 @@ function App() {
     if (!event.target.files || !event.target.files[0]) {
       setMessage('No file selected.');
       setIsError(false);
-      setDownloadUrl(null);
+     
       if (canvasRef.current) { // Clear canvas if no file is selected after a previous image
         const ctx = canvasRef.current.getContext('2d');
         ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -513,6 +514,8 @@ function App() {
 
     const file = event.target.files?.[0];
     if (file) {
+      setDownloadUrl(null);
+      setOriginalUrl(null);
       setUploadFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -527,6 +530,8 @@ function App() {
           canvas!.height = shape.height;
           const ctx = canvas!.getContext('2d');
           ctx?.drawImage(img, 0, 0, shape.width, shape.height);
+          
+          setOriginalUrl(canvas!.toDataURL('image/png'));
 
           setIsLoading(false);
           setIsProcessing(false);
@@ -660,7 +665,7 @@ function App() {
 
       addGlow(ctx, canvas);
 
-
+      setDownloadUrl(canvas.toDataURL('image/png'));
 
 
 
@@ -669,30 +674,6 @@ function App() {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(image, 0, 0);
-    }
-  }
-
-  async function fetchImageAsFile(imageUrl: string, outputFileName: string = "image.png"): Promise<File | null> {
-    try {
-      const response = await fetch("https://api.ryzumi.vip/api/ai/removebg?url=" + imageUrl);
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
-
-      // Try to get the file type from the blob, default to 'image/png' if not available
-      // The API is for removing background, so PNG is a likely output.
-      const fileType = blob.type || 'image/png';
-
-      // Create a File object
-      const imageFile = new File([blob], outputFileName, { type: fileType });
-
-      return imageFile;
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      return null;
     }
   }
 
@@ -783,7 +764,7 @@ function App() {
         drawResult(foregroundImage);
         setMessage('Background removed, red background applied. No faces detected for sensor bar. 🤔');
       }
-      setDownloadUrl(canvas.toDataURL('image/png'));
+      
 
     } catch (err: any) {
       console.error("Error during image processing:", err);
@@ -813,6 +794,7 @@ function App() {
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
+
 
     if (!canvas || !ctx) {
       setMessage('Canvas not ready.');
@@ -952,7 +934,7 @@ function App() {
         drawResult(foregroundImage);
         setMessage('Background removed, red background applied. No faces detected for sensor bar. 🤔');
       }
-      setDownloadUrl(canvas.toDataURL('image/png'));
+      
 
     } catch (err: any) {
       console.error("Error during image processing:", err);
