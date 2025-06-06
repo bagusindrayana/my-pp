@@ -3,8 +3,8 @@ import './App.css'
 import React, { useState, useRef, useEffect, type ChangeEvent, type CSSProperties, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import * as ort from 'onnxruntime-web';
-import * as imglyRemoveBackground from '@imgly/background-removal';
-import { type Config } from "@imgly/background-removal";
+// import * as imglyRemoveBackground from '@imgly/background-removal';
+// import { type Config } from "@imgly/background-removal";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -113,15 +113,15 @@ function App() {
   const [originalImageElement, setOriginalImageElement] = useState<HTMLImageElement | null>(null);
   const [originalImageShape, setOriginalImageShape] = useState<OriginalImageShape>({ width: 0, height: 0 });
   const [status, setStatus] = useState<string>("Initializing...");
-  const [detectionCount, setDetectionCount] = useState<string>("Detected Eyes: 0");
+  // const [detectionCount, setDetectionCount] = useState<string>("Detected Eyes: 0");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   // --- Refs for Canvases ---
-  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const originalCanvasRef = useRef<HTMLCanvasElement>(null);
+  // const maskCanvasRef = useRef<HTMLCanvasElement>(null);
+  // const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [contentType, setContentType] = useState<string | null>("real-person");
 
@@ -135,11 +135,9 @@ function App() {
 
   const resultImageElement = useRef<HTMLImageElement | null>(null);
 
-  const imglyConfig: Config = {
-    /// publicPath: '/assets/imgly/', // Adjust to where you serve @imgly/background-removal assets
-    // You might also specify model: 'medium' or 'small' for speed vs quality trade-off
-    model: 'isnet_quint8'
-  };
+  // const imglyConfig: Config = {
+  //   model: 'isnet_quint8'
+  // };
 
   
 
@@ -263,68 +261,6 @@ function App() {
       console.error('Error uploading file:', error);
       return null;
 
-    }
-  }
-
-  async function getFileFromUrl(url: string) {
-    try {
-      // --- Auto-extract filename from URL ---
-      let fileName = '';
-      try {
-        const urlObj = new URL(url);
-        const pathnameParts = urlObj.pathname.split('/');
-        fileName = pathnameParts.pop() || `downloaded_file_${Date.now()}`; // Get last part, or fallback
-
-        // Further sanitize or ensure it's a valid filename if needed
-        // For example, remove query parameters if they somehow got included (though URL.pathname shouldn't have them)
-        fileName = fileName.split('?')[0];
-        fileName = fileName.split('#')[0];
-
-        // If after splitting, the name is empty (e.g., URL ends with '/'), provide a fallback
-        if (!fileName && pathnameParts.length > 0) {
-          // If the original last part was empty, try the second to last (e.g. for "example.com/files/")
-          fileName = pathnameParts.pop()!;
-        }
-        if (!fileName) { // If still no name (e.g. "example.com/")
-          fileName = urlObj.hostname.replace(/\./g, '_') + `_file_${Date.now()}`;
-        }
-
-      } catch (e) {
-        // Fallback for invalid URLs or if URL parsing fails unexpectedly
-        console.warn("Could not parse URL to extract filename, generating a default name.", e);
-        const parts = url.split('/');
-        fileName = parts.pop() || `downloaded_file_${Date.now()}`;
-        fileName = fileName.split('?')[0];
-        fileName = fileName.split('#')[0];
-        if (!fileName) {
-          fileName = `default_filename_${Date.now()}`;
-        }
-      }
-      // Ensure filename is not empty
-      if (!fileName) {
-        fileName = `unnamed_file_${Date.now()}`;
-      }
-      // -----------------------------------------
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get('Content-Type');
-
-      if (!contentType || !contentType.startsWith('image/')) {
-        console.warn(`Warning: Content-Type is '${contentType}'. May not be an image. Proceeding.`);
-        // You might want to throw an error here if you strictly expect an image.
-      }
-
-      const data = await response.blob();
-      const file = new File([data], fileName, { type: contentType || 'application/octet-stream' });
-
-      return file;
-    } catch (error) {
-      console.error("Error fetching or creating file:", error);
-      return null;
     }
   }
 
@@ -599,79 +535,79 @@ function App() {
   }, [MODEL_INPUT_SIZE, CONF_SCORE_THRESHOLD, MASK_VALUE_THRESHOLD, IOU_NMS_THRESHOLD]);
 
   // --- Display Mask on Canvas ---
-  const displayMask = useCallback((maskData: Uint8Array, width: number, height: number) => {
-    const canvas = maskCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // const displayMask = useCallback((maskData: Uint8Array, width: number, height: number) => {
+  //   const canvas = maskCanvasRef.current;
+  //   if (!canvas) return;
+  //   const ctx = canvas.getContext('2d');
+  //   if (!ctx) return;
 
-    canvas.width = width; canvas.height = height;
-    const imageData = ctx.createImageData(width, height);
-    for (let i = 0; i < maskData.length; i++) {
-      imageData.data[i * 4] = maskData[i];     // R
-      imageData.data[i * 4 + 1] = maskData[i]; // G
-      imageData.data[i * 4 + 2] = maskData[i]; // B
-      imageData.data[i * 4 + 3] = 255;         // Alpha
-    }
-    ctx.putImageData(imageData, 0, 0);
-  }, []);
+  //   canvas.width = width; canvas.height = height;
+  //   const imageData = ctx.createImageData(width, height);
+  //   for (let i = 0; i < maskData.length; i++) {
+  //     imageData.data[i * 4] = maskData[i];     // R
+  //     imageData.data[i * 4 + 1] = maskData[i]; // G
+  //     imageData.data[i * 4 + 2] = maskData[i]; // B
+  //     imageData.data[i * 4 + 3] = 255;         // Alpha
+  //   }
+  //   ctx.putImageData(imageData, 0, 0);
+  // }, []);
 
-  // --- Display Overlay on Canvas ---
-  const displayOverlay = useCallback((
-    imageElement: HTMLImageElement,
-    maskData: Uint8Array,
-    boundingBoxes: BoundingBoxDisplay[],
-    width: number,
-    height: number
-  ) => {
-    const canvas = overlayCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // // --- Display Overlay on Canvas ---
+  // const displayOverlay = useCallback((
+  //   imageElement: HTMLImageElement,
+  //   maskData: Uint8Array,
+  //   boundingBoxes: BoundingBoxDisplay[],
+  //   width: number,
+  //   height: number
+  // ) => {
+  //   const canvas = overlayCanvasRef.current;
+  //   if (!canvas) return;
+  //   const ctx = canvas.getContext('2d');
+  //   if (!ctx) return;
 
-    canvas.width = width; canvas.height = height;
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(imageElement, 0, 0, width, height);
+  //   canvas.width = width; canvas.height = height;
+  //   ctx.clearRect(0, 0, width, height);
+  //   ctx.drawImage(imageElement, 0, 0, width, height);
 
-    // Draw mask with transparency
-    const tempOverlayCanvas = document.createElement('canvas');
-    tempOverlayCanvas.width = width; tempOverlayCanvas.height = height;
-    const tempOverlayCtx = tempOverlayCanvas.getContext('2d');
-    if (!tempOverlayCtx) return;
+  //   // Draw mask with transparency
+  //   const tempOverlayCanvas = document.createElement('canvas');
+  //   tempOverlayCanvas.width = width; tempOverlayCanvas.height = height;
+  //   const tempOverlayCtx = tempOverlayCanvas.getContext('2d');
+  //   if (!tempOverlayCtx) return;
 
-    const maskImageData = tempOverlayCtx.createImageData(width, height);
-    const maskColor = [0, 255, 0]; // Green
-    for (let i = 0; i < maskData.length; i++) {
-      if (maskData[i] > 128) { // If mask pixel is "on"
-        maskImageData.data[i * 4] = maskColor[0];
-        maskImageData.data[i * 4 + 1] = maskColor[1];
-        maskImageData.data[i * 4 + 2] = maskColor[2];
-        maskImageData.data[i * 4 + 3] = 100; // Alpha for mask (semi-transparent)
-      } else {
-        maskImageData.data[i * 4 + 3] = 0; // Fully transparent if mask pixel is "off"
-      }
-    }
-    tempOverlayCtx.putImageData(maskImageData, 0, 0);
+  //   const maskImageData = tempOverlayCtx.createImageData(width, height);
+  //   const maskColor = [0, 255, 0]; // Green
+  //   for (let i = 0; i < maskData.length; i++) {
+  //     if (maskData[i] > 128) { // If mask pixel is "on"
+  //       maskImageData.data[i * 4] = maskColor[0];
+  //       maskImageData.data[i * 4 + 1] = maskColor[1];
+  //       maskImageData.data[i * 4 + 2] = maskColor[2];
+  //       maskImageData.data[i * 4 + 3] = 100; // Alpha for mask (semi-transparent)
+  //     } else {
+  //       maskImageData.data[i * 4 + 3] = 0; // Fully transparent if mask pixel is "off"
+  //     }
+  //   }
+  //   tempOverlayCtx.putImageData(maskImageData, 0, 0);
 
-    ctx.globalAlpha = 0.5; // Overall transparency for the drawn mask layer
-    ctx.drawImage(tempOverlayCanvas, 0, 0);
-    ctx.globalAlpha = 1.0; // Reset global alpha
+  //   ctx.globalAlpha = 0.5; // Overall transparency for the drawn mask layer
+  //   ctx.drawImage(tempOverlayCanvas, 0, 0);
+  //   ctx.globalAlpha = 1.0; // Reset global alpha
 
-    // Draw bounding boxes and confidence scores
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = Math.max(1, Math.min(width, height) * 0.005); // Dynamic line width
-    const fontSize = Math.max(10, Math.min(width, height) * 0.02);
-    ctx.font = `${fontSize}px Arial`;
-    ctx.fillStyle = "red";
+  //   // Draw bounding boxes and confidence scores
+  //   ctx.strokeStyle = "red";
+  //   ctx.lineWidth = Math.max(1, Math.min(width, height) * 0.005); // Dynamic line width
+  //   const fontSize = Math.max(10, Math.min(width, height) * 0.02);
+  //   ctx.font = `${fontSize}px Arial`;
+  //   ctx.fillStyle = "red";
 
-    boundingBoxes.forEach(box => {
-      ctx.strokeRect(box.x, box.y, box.width, box.height);
-      const text = `${box.confidence}`;
-      const textX = box.x;
-      const textY = box.y > fontSize ? box.y - 5 : box.y + fontSize; // Position text above or below box edge
-      ctx.fillText(text, textX, textY);
-    });
-  }, []);
+  //   boundingBoxes.forEach(box => {
+  //     ctx.strokeRect(box.x, box.y, box.width, box.height);
+  //     const text = `${box.confidence}`;
+  //     const textX = box.x;
+  //     const textY = box.y > fontSize ? box.y - 5 : box.y + fontSize; // Position text above or below box edge
+  //     ctx.fillText(text, textX, textY);
+  //   });
+  // }, []);
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
 
@@ -903,7 +839,7 @@ function App() {
     }
   }
 
-  const processReal = async (file: File) => {
+  const processReal = async () => {
     if (isFaceApiModelsLoading) {
       setMessage('Face detection models are still loading. Please wait.');
       setIsError(false);
@@ -1012,7 +948,7 @@ function App() {
     }
   }
 
-  const processAnime = async (file: File) => {
+  const processAnime = async () => {
     // setIsProcessing(true); // Disable segment button while loading image
     // setStatus("Loading image...");
     // setDetectionCount("Detected Eyes: 0");
@@ -1158,7 +1094,7 @@ function App() {
       }
 
       setMessage("Post-processing segmentation (incl. NMS)...");
-      const { mask: finalMask, count: detectedCountNum, boxes: boundingBoxes } = postprocessSegmentationWithNMS(
+      const { mask: _, count: detectedCountNum, boxes: boundingBoxes } = postprocessSegmentationWithNMS(
         detectionOutput.data as Float32Array,
         detectionOutput.dims,
         maskFeatures.data as Float32Array,
@@ -1251,12 +1187,11 @@ function App() {
   const handleProcess = async () => {
 
     if (contentType == "real-person") {
-      processReal(uploadFile!);
+      processReal();
     } else if (contentType == "anime") {
-      processAnime(uploadFile!);
+      processAnime();
     }
 
-    console.log(contentType);
 
     // if (!originalImageElement || !ortSession) {
     //   setErrorModal("Please upload an image and wait for the model to load before segmenting.");
@@ -1353,7 +1288,7 @@ function App() {
           <ul className="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex ">
             <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
               <div className="flex items-center ps-3">
-                <input id="horizontal-list-radio-license" type="radio" checked={contentType == "real-person"} onChange={(e: any) => {
+                <input id="horizontal-list-radio-license" type="radio" checked={contentType == "real-person"} onChange={(_: any) => {
                   setContentType("real-person");
                 }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
                 <label htmlFor="horizontal-list-radio-license" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Real Person </label>
@@ -1361,7 +1296,7 @@ function App() {
             </li>
             <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
               <div className="flex items-center ps-3">
-                <input id="horizontal-list-radio-id" type="radio" checked={contentType == "anime"} onChange={(e: any) => {
+                <input id="horizontal-list-radio-id" type="radio" checked={contentType == "anime"} onChange={(_: any) => {
                   setContentType("anime");
                 }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
                 <label htmlFor="horizontal-list-radio-id" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Anime</label>
@@ -1377,7 +1312,7 @@ function App() {
 
             <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
               <div className="flex items-center ps-3">
-                <input id="glow-effect" type="checkbox" checked={glowEffect} onChange={(e) => {
+                <input id="glow-effect" type="checkbox" checked={glowEffect} onChange={(_) => {
                   setGlowEffect(!glowEffect);
                 }} disabled={isLoading} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
                 <label htmlFor="glow-effect" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Glow</label>
