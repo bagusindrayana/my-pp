@@ -3,6 +3,7 @@ import './App.css'
 import React, { useState, useRef, useEffect, type ChangeEvent, type CSSProperties, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import * as ort from 'onnxruntime-web';
+import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -102,6 +103,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFaceApiModelsLoading, setIsFaceApiModelsLoading] = useState<boolean>(true);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [isError, setIsError] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -133,7 +135,7 @@ function App() {
 
   // --- Load face-api.js Models ---
   useEffect(() => {
-    
+
 
     async function initOrtSession() {
       try {
@@ -164,7 +166,7 @@ function App() {
       }
     }
 
-    
+
     const loadFaceApiModels = async () => {
       setMessage('Loading face detection models...');
       setIsLoading(true); // Use main loader for this initial step too
@@ -199,9 +201,9 @@ function App() {
 
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     drawResult(resultImageElement.current);
-  },[glowEffect,debouncedColor])
+  }, [glowEffect, debouncedColor])
 
   async function uploadFileWithGivenFileObject(fileObject: any) {
     const formData = new FormData();
@@ -538,7 +540,7 @@ function App() {
       uploadFileWithGivenFileObject(file).then((d) => {
         if (d.data.url) {
           const urlFile = d.data.url.replace("http://tmpfiles.org", "https://tmpfiles.org").replace("https://tmpfiles.org", "https://tmpfiles.org/dl")
-         
+
           imageTempUrl.current = urlFile;
 
           setUploadFile(file);
@@ -555,6 +557,7 @@ function App() {
               canvas!.height = shape.height;
               const ctx = canvas!.getContext('2d');
               ctx?.drawImage(img, 0, 0, shape.width, shape.height);
+              setOriginalUrl(canvas!.toDataURL('image/png'));
 
               setIsLoading(false);
               setIsProcessing(false);
@@ -614,7 +617,7 @@ function App() {
 
 
   const drawResult = (image: any) => {
-    if(image == null){
+    if (image == null) {
       return;
     }
     const canvas = canvasRef.current;
@@ -627,7 +630,7 @@ function App() {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-     ctx.reset(); 
+    ctx.reset();
 
     // 1. Fill background with red
     ctx.fillStyle = bgColor;
@@ -649,7 +652,7 @@ function App() {
         let r = data[i];
         let g = data[i + 1];
         let b = data[i + 2];
-       
+
 
         // 1. Apply Grayscale "Amount"
         const bwAmount = 1; // Convert 0-100 to 0.0-1.0
@@ -690,7 +693,7 @@ function App() {
 
       addGlow(ctx, canvas);
 
-
+      setDownloadUrl(canvas.toDataURL('image/png'));
 
 
 
@@ -706,19 +709,19 @@ function App() {
     try {
       // const apiUrl = "https://api.ryzumi.vip/api/ai/removebg?url=";
       const apiUrl = "https://api.ferdev.my.id/tools/removebg?link=";
-      
+
       const response = await fetch(apiUrl + imageUrl);
 
       if (!response.ok) {
         throw new Error(`API request failed with status ${response.status}: ${response.statusText}`);
       }
-      let blob : Blob
+      let blob: Blob
 
       const contentType = response.headers.get('content-type');
 
       if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
-       
+
         const response2 = await fetch(data.data);
 
         if (!response2.ok) {
@@ -729,7 +732,7 @@ function App() {
         blob = await response.blob();
       }
 
-      
+
 
       // Try to get the file type from the blob, default to 'image/png' if not available
       // The API is for removing background, so PNG is a likely output.
@@ -823,7 +826,7 @@ function App() {
 
           drawCombinedSensorBar(barCtx!, leftEyePoints, rightEyePoints);
 
-          
+
           drawResult(foregroundImage);
 
         });
@@ -853,7 +856,7 @@ function App() {
   }
 
   const processAnime = async () => {
-    
+
     if (!originalImageElement || !ortSession) {
       setErrorModal("Please upload an image and wait for the model to load before segmenting.");
       return;
@@ -970,7 +973,7 @@ function App() {
         barCtx!.rotate(angle);
         barCtx!.fillStyle = 'black';
         barCtx!.fillRect(-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
-        console.log(midPointX, midPointY,-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
+        console.log(midPointX, midPointY, -sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
 
 
         drawResult(foregroundImage);
@@ -1035,107 +1038,123 @@ function App() {
     <div className='bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4'>
       {errorModal && <ErrorModal message={errorModal} onClose={() => setErrorModal(null)} />}
       <style>{keyframes}</style>
-      <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+      <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-7xl">
         <header className="text-center mb-4">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">Generate Your PP</h1>
           <p className="text-gray-600 mt-2">small pp big pp doesnt matter.</p>
         </header>
 
-        <div className="mb-4">
-          <label htmlFor="imageUpload" className="block mb-2 text-sm font-medium text-gray-700">Upload Image:</label>
-          <input
-            type="file"
-            id="imageUpload"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none focus:border-blue-500 p-2.5"
-            disabled={isFaceApiModelsLoading || isLoading}
-          />
 
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 w-full'>
+          <div>
+            <div className="mb-4">
+              <label htmlFor="imageUpload" className="block mb-2 text-sm font-medium text-gray-700">Upload Image:</label>
+              <input
+                type="file"
+                id="imageUpload"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none focus:border-blue-500 p-2.5"
+                disabled={isFaceApiModelsLoading || isLoading}
+              />
+
+            </div>
+            <div className='mb-4'>
+              <label className="block mb-2 text-sm font-medium text-gray-700">Content Type:</label>
+              <ul className="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex ">
+                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
+                  <div className="flex items-center ps-3">
+                    <input id="horizontal-list-radio-license" type="radio" checked={contentType == "real-person"} onChange={(_: any) => {
+                      setContentType("real-person");
+                    }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
+                    <label htmlFor="horizontal-list-radio-license" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Real Person </label>
+                  </div>
+                </li>
+                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
+                  <div className="flex items-center ps-3">
+                    <input id="horizontal-list-radio-id" type="radio" checked={contentType == "anime"} onChange={(_: any) => {
+                      setContentType("anime");
+                    }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
+                    <label htmlFor="horizontal-list-radio-id" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Anime</label>
+                  </div>
+                </li>
+
+
+              </ul>
+            </div>
+            <div className='mb-4'>
+              <label className="block mb-2 text-sm font-medium text-gray-700">Setting:</label>
+              <ul className="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex ">
+
+                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
+                  <div className="flex items-center ps-3">
+                    <input id="glow-effect" type="checkbox" checked={glowEffect} onChange={(_) => {
+                      setGlowEffect(!glowEffect);
+                    }} disabled={isLoading} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
+                    <label htmlFor="glow-effect" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Glow</label>
+                  </div>
+                </li>
+                <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
+                  <div className="flex items-center ps-3">
+                    <input id="bg-color" type="color" value={bgColor} onChange={(e) => {
+                      setBgColor(e.target.value);
+
+                    }} disabled={isLoading} className="w-8 h-8 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
+                    <label htmlFor="bg-color" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Color</label>
+                  </div>
+                </li>
+
+              </ul>
+            </div>
+
+            <div className='mb-4 text-center'>
+              <button
+                onClick={handleProcess} disabled={!uploadFile || isProcessing || !ortSession} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                {isProcessing && status.startsWith("Processing") ? '🔃 Processing...' : 'Process Image 🔥'}
+              </button>
+            </div>
+
+            <div id="statusContainer" className="text-center my-4">
+
+              <p
+                id="messageArea"
+                className={`font-medium min-h-[30px] ${isError ? 'text-red-500' : 'text-gray-700'}`}
+              >
+                {message}
+              </p>
+            </div>
+
+
+
+          </div>
+          <div>
+            <div className="w-full bg-gray-200 min-h-96 rounded-lg overflow-hidden shadow-inner relative">
+              <canvas ref={canvasRef} id="canvas" className="w-full h-auto hidden rounded-lg"></canvas>
+              {originalUrl && <BeforeAfterSlider
+                beforeImage={originalUrl!}
+                afterImage={downloadUrl ?? originalUrl}
+                beforeLabel="Original"
+                afterLabel="New"
+                className="w-full mx-auto rounded-lg "
+              />}
+              {isLoading && <div style={loaderStyle} data-testid="loader" className='absolute top-0 left-0 bottom-0 right-0 m-auto'></div>}
+            </div>
+            <div className="mt-6 text-center">
+              {downloadUrl && !isLoading && (
+                <a
+                  id="downloadLink"
+                  href={downloadUrl}
+                  className="bg-blue-500 hover:bg-blue-700 block w-full text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out"
+                  download="sensored-image-pp.png"
+                >
+                  Download Image 🖼️
+                </a>
+              )}
+            </div>
+          </div>
         </div>
-        <div className='mb-4'>
-          <label className="block mb-2 text-sm font-medium text-gray-700">Content Type:</label>
-          <ul className="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex ">
-            <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
-              <div className="flex items-center ps-3">
-                <input id="horizontal-list-radio-license" type="radio" checked={contentType == "real-person"} onChange={(_: any) => {
-                  setContentType("real-person");
-                }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
-                <label htmlFor="horizontal-list-radio-license" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Real Person </label>
-              </div>
-            </li>
-            <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
-              <div className="flex items-center ps-3">
-                <input id="horizontal-list-radio-id" type="radio" checked={contentType == "anime"} onChange={(_: any) => {
-                  setContentType("anime");
-                }} disabled={isLoading} name="list-radio" className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 " />
-                <label htmlFor="horizontal-list-radio-id" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Anime</label>
-              </div>
-            </li>
 
 
-          </ul>
-        </div>
-        <div className='mb-4'>
-          <label className="block mb-2 text-sm font-medium text-gray-700">Setting:</label>
-          <ul className="items-center w-full text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg sm:flex ">
-
-            <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
-              <div className="flex items-center ps-3">
-                <input id="glow-effect" type="checkbox" checked={glowEffect} onChange={(_) => {
-                  setGlowEffect(!glowEffect);
-                }} disabled={isLoading} className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
-                <label htmlFor="glow-effect" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Glow</label>
-              </div>
-            </li>
-            <li className="w-full border-b border-gray-200 sm:border-b-0 sm:border-r ">
-              <div className="flex items-center ps-3">
-                <input id="bg-color" type="color" value={bgColor} onChange={(e) => {
-                  setBgColor(e.target.value);
-                  
-                }} disabled={isLoading} className="w-8 h-8 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
-                <label htmlFor="bg-color" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Color</label>
-              </div>
-            </li>
-
-          </ul>
-        </div>
-
-        <div className='mb-4 text-center'>
-          <button
-            onClick={handleProcess} disabled={!uploadFile || isProcessing || !ortSession} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-            {isProcessing && status.startsWith("Processing") ? 'Processing...' : 'Process Image'}
-          </button>
-        </div>
-
-        <div id="statusContainer" className="text-center my-4">
-         
-          <p
-            id="messageArea"
-            className={`font-medium min-h-[30px] ${isError ? 'text-red-500' : 'text-gray-700'}`}
-          >
-            {message}
-          </p>
-        </div>
-
-
-        <div className="w-full bg-gray-200 rounded-lg overflow-hidden shadow-inner relative">
-          <canvas ref={canvasRef} id="canvas" className="w-full h-auto block rounded-lg"></canvas>
-           {isLoading && <div style={loaderStyle} data-testid="loader" className='absolute top-0 left-0 bottom-0 right-0 m-auto'></div>}
-        </div>
-
-        <div className="mt-6 text-center">
-          {downloadUrl && !isLoading && (
-            <a
-              id="downloadLink"
-              href={downloadUrl}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out"
-              download="sensored-image-pp.png"
-            >
-              Download Image 🖼️
-            </a>
-          )}
-        </div>
       </div>
 
       <footer className="text-center text-gray-500 mt-8 text-sm">
