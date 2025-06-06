@@ -522,7 +522,7 @@ function App() {
     if (!event.target.files || !event.target.files[0]) {
       setMessage('No file selected.');
       setIsError(false);
-      setDownloadUrl(null);
+     
       if (canvasRef.current) { // Clear canvas if no file is selected after a previous image
         const ctx = canvasRef.current.getContext('2d');
         ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -537,6 +537,8 @@ function App() {
 
     const file = event.target.files?.[0];
     if (file) {
+      setDownloadUrl(null);
+      setOriginalUrl(null);
       uploadFileWithGivenFileObject(file).then((d) => {
         if (d.data.url) {
           const urlFile = d.data.url.replace("http://tmpfiles.org", "https://tmpfiles.org").replace("https://tmpfiles.org", "https://tmpfiles.org/dl")
