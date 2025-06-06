@@ -3,8 +3,8 @@ import './App.css'
 import React, { useState, useRef, useEffect, type ChangeEvent, type CSSProperties, useCallback } from 'react';
 import * as faceapi from 'face-api.js';
 import * as ort from 'onnxruntime-web';
-// import * as imglyRemoveBackground from '@imgly/background-removal';
-// import { type Config } from "@imgly/background-removal";
+import * as imglyRemoveBackground from '@imgly/background-removal';
+import { type Config } from "@imgly/background-removal";
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -135,15 +135,15 @@ function App() {
 
   const resultImageElement = useRef<HTMLImageElement | null>(null);
 
-  // const imglyConfig: Config = {
-  //   model: 'isnet_quint8'
-  // };
+  const imglyConfig: Config = {
+    model: 'isnet_quint8'
+  };
 
-  
+
 
   // --- Load face-api.js Models ---
   useEffect(() => {
-    
+
 
 
 
@@ -176,7 +176,7 @@ function App() {
       }
     }
 
-    
+
     const loadFaceApiModels = async () => {
       setMessage('Loading face detection models...');
       setIsLoading(true); // Use main loader for this initial step too
@@ -205,64 +205,21 @@ function App() {
 
 
 
-    // setMessage('Loading background removal model (40mb)...');
-    // setIsLoading(true); // Use main loader for this initial step too
-    // imglyRemoveBackground.preload(imglyConfig).then(async () => {
+    setMessage('Loading background removal model (40mb)...');
+    setIsLoading(true); // Use main loader for this initial step too
+    imglyRemoveBackground.preload(imglyConfig).then(async () => {
 
-    //   await loadFaceApiModels();
-    //   // await initOrtSession();
-    // });
-
-    loadFaceApiModels();
+      await loadFaceApiModels();
+      // await initOrtSession();
+    });
 
 
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     drawResult(resultImageElement.current);
-  },[glowEffect,debouncedColor])
+  }, [glowEffect, debouncedColor])
 
-  async function uploadFileWithGivenFileObject(fileObject: any) {
-    const formData = new FormData();
-    // Use the actual file name from the File object
-    formData.append('file', fileObject, fileObject.name);
-
-    const url = 'https://tmpfiles.org/api/v1/upload';
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        // Try to get more error details from the response
-        let errorDetails = `HTTP error! status: ${response.status}`;
-        try {
-          const errorData = await response.json(); // Or response.text()
-          errorDetails += ` - ${JSON.stringify(errorData)}`;
-        } catch (e) {
-          // Ignore if response is not JSON or text
-        }
-        throw new Error(errorDetails);
-      }
-
-      const data = await response.json();
-      console.log('Success:', data);
-      // tmpfiles.org returns the URL in data.data.url
-      // if (data && data.data && data.data.url) {
-      //   alert('File uploaded! URL: ' + data.data.url);
-      // } else {
-      //   alert('File uploaded, but URL not found in response.');
-      //   console.log('Full response:', data);
-      // }
-      return data;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      return null;
-
-    }
-  }
 
   const getEyeMetrics = (eyePoints: EyePoint[] | undefined): EyeMetrics | null => {
     if (!eyePoints || eyePoints.length === 0) return null;
@@ -534,80 +491,7 @@ function App() {
     };
   }, [MODEL_INPUT_SIZE, CONF_SCORE_THRESHOLD, MASK_VALUE_THRESHOLD, IOU_NMS_THRESHOLD]);
 
-  // --- Display Mask on Canvas ---
-  // const displayMask = useCallback((maskData: Uint8Array, width: number, height: number) => {
-  //   const canvas = maskCanvasRef.current;
-  //   if (!canvas) return;
-  //   const ctx = canvas.getContext('2d');
-  //   if (!ctx) return;
-
-  //   canvas.width = width; canvas.height = height;
-  //   const imageData = ctx.createImageData(width, height);
-  //   for (let i = 0; i < maskData.length; i++) {
-  //     imageData.data[i * 4] = maskData[i];     // R
-  //     imageData.data[i * 4 + 1] = maskData[i]; // G
-  //     imageData.data[i * 4 + 2] = maskData[i]; // B
-  //     imageData.data[i * 4 + 3] = 255;         // Alpha
-  //   }
-  //   ctx.putImageData(imageData, 0, 0);
-  // }, []);
-
-  // // --- Display Overlay on Canvas ---
-  // const displayOverlay = useCallback((
-  //   imageElement: HTMLImageElement,
-  //   maskData: Uint8Array,
-  //   boundingBoxes: BoundingBoxDisplay[],
-  //   width: number,
-  //   height: number
-  // ) => {
-  //   const canvas = overlayCanvasRef.current;
-  //   if (!canvas) return;
-  //   const ctx = canvas.getContext('2d');
-  //   if (!ctx) return;
-
-  //   canvas.width = width; canvas.height = height;
-  //   ctx.clearRect(0, 0, width, height);
-  //   ctx.drawImage(imageElement, 0, 0, width, height);
-
-  //   // Draw mask with transparency
-  //   const tempOverlayCanvas = document.createElement('canvas');
-  //   tempOverlayCanvas.width = width; tempOverlayCanvas.height = height;
-  //   const tempOverlayCtx = tempOverlayCanvas.getContext('2d');
-  //   if (!tempOverlayCtx) return;
-
-  //   const maskImageData = tempOverlayCtx.createImageData(width, height);
-  //   const maskColor = [0, 255, 0]; // Green
-  //   for (let i = 0; i < maskData.length; i++) {
-  //     if (maskData[i] > 128) { // If mask pixel is "on"
-  //       maskImageData.data[i * 4] = maskColor[0];
-  //       maskImageData.data[i * 4 + 1] = maskColor[1];
-  //       maskImageData.data[i * 4 + 2] = maskColor[2];
-  //       maskImageData.data[i * 4 + 3] = 100; // Alpha for mask (semi-transparent)
-  //     } else {
-  //       maskImageData.data[i * 4 + 3] = 0; // Fully transparent if mask pixel is "off"
-  //     }
-  //   }
-  //   tempOverlayCtx.putImageData(maskImageData, 0, 0);
-
-  //   ctx.globalAlpha = 0.5; // Overall transparency for the drawn mask layer
-  //   ctx.drawImage(tempOverlayCanvas, 0, 0);
-  //   ctx.globalAlpha = 1.0; // Reset global alpha
-
-  //   // Draw bounding boxes and confidence scores
-  //   ctx.strokeStyle = "red";
-  //   ctx.lineWidth = Math.max(1, Math.min(width, height) * 0.005); // Dynamic line width
-  //   const fontSize = Math.max(10, Math.min(width, height) * 0.02);
-  //   ctx.font = `${fontSize}px Arial`;
-  //   ctx.fillStyle = "red";
-
-  //   boundingBoxes.forEach(box => {
-  //     ctx.strokeRect(box.x, box.y, box.width, box.height);
-  //     const text = `${box.confidence}`;
-  //     const textX = box.x;
-  //     const textY = box.y > fontSize ? box.y - 5 : box.y + fontSize; // Position text above or below box edge
-  //     ctx.fillText(text, textX, textY);
-  //   });
-  // }, []);
+ 
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
 
@@ -629,58 +513,47 @@ function App() {
 
     const file = event.target.files?.[0];
     if (file) {
-      uploadFileWithGivenFileObject(file).then((d) => {
-        if (d.data.url) {
-          const urlFile = d.data.url.replace("http://tmpfiles.org", "https://tmpfiles.org").replace("https://tmpfiles.org", "https://tmpfiles.org/dl")
-          // getFileFromUrl(urlFile).then((f)=>{
+      setUploadFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          setOriginalImageElement(img);
+          const shape = { width: img.naturalWidth, height: img.naturalHeight };
+          setOriginalImageShape(shape);
 
-          // })
+          const canvas = canvasRef.current;
+          canvas!.width = shape.width;
+          canvas!.height = shape.height;
+          const ctx = canvas!.getContext('2d');
+          ctx?.drawImage(img, 0, 0, shape.width, shape.height);
 
-          imageTempUrl.current = urlFile;
+          setIsLoading(false);
+          setIsProcessing(false);
+          setMessage('Image ready!');
 
-          setUploadFile(file);
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-              setOriginalImageElement(img);
-              const shape = { width: img.naturalWidth, height: img.naturalHeight };
-              setOriginalImageShape(shape);
-
-              const canvas = canvasRef.current;
-              canvas!.width = shape.width;
-              canvas!.height = shape.height;
-              const ctx = canvas!.getContext('2d');
-              ctx?.drawImage(img, 0, 0, shape.width, shape.height);
-
-              setIsLoading(false);
-              setIsProcessing(false);
-              setMessage('Image ready!');
-
-            }
-            img.onerror = () => {
-              setStatus("Error loading image file.");
-              setErrorModal("Could not load the selected image. Please try a different file.");
-              setIsProcessing(false);
-            }
-            if (e.target?.result) {
-              img.src = e.target.result as string;
-            } else {
-              setStatus("Error reading image file.");
-              setErrorModal("Could not read the selected image file.");
-              setIsProcessing(false);
-              setIsLoading(false);
-            }
-          };
-          reader.onerror = () => {
-            setStatus("Error reading file.");
-            setErrorModal("There was an error reading the file.");
-            setIsProcessing(false);
-            setIsLoading(false);
-          };
-          reader.readAsDataURL(file);
         }
-      });
+        img.onerror = () => {
+          setStatus("Error loading image file.");
+          setErrorModal("Could not load the selected image. Please try a different file.");
+          setIsProcessing(false);
+        }
+        if (e.target?.result) {
+          img.src = e.target.result as string;
+        } else {
+          setStatus("Error reading image file.");
+          setErrorModal("Could not read the selected image file.");
+          setIsProcessing(false);
+          setIsLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setStatus("Error reading file.");
+        setErrorModal("There was an error reading the file.");
+        setIsProcessing(false);
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
 
     }
 
@@ -711,7 +584,7 @@ function App() {
 
 
   const drawResult = (image: any) => {
-    if(image == null){
+    if (image == null) {
       return;
     }
     const canvas = canvasRef.current;
@@ -724,7 +597,7 @@ function App() {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-     ctx.reset(); 
+    ctx.reset();
 
     // 1. Fill background with red
     ctx.fillStyle = bgColor;
@@ -746,23 +619,7 @@ function App() {
         let r = data[i];
         let g = data[i + 1];
         let b = data[i + 2];
-        //const gray = (r + g + b) / 3;
-
-        // Apply high contrast:
-        // Pixels darker than the threshold become black, lighter ones become white.
-        // A common threshold is 128 (midpoint of 0-255).
-        // const threshold = 128;
-        // let contrastValue;
-        // if (gray < threshold) {
-        //   contrastValue = 0; // Black
-        // } else {
-        //   contrastValue = 255; // White
-        // }
-
-        // data[i] = contrastValue;     // Red
-        // data[i + 1] = contrastValue; // Green
-        // data[i + 2] = contrastValue; // Blue
-        // Alpha (data[i + 3]) remains unchanged
+       
 
         // 1. Apply Grayscale "Amount"
         const bwAmount = 1; // Convert 0-100 to 0.0-1.0
@@ -866,9 +723,7 @@ function App() {
       setMessage('Processing image: Removing background (this may take a moment)...');
 
 
-      // const backgroundRemovedBlob = await imglyRemoveBackground.removeBackground(file, imglyConfig);
-      const backgroundRemovedBlob = await fetchImageAsFile(imageTempUrl.current!);
-
+      const backgroundRemovedBlob = await imglyRemoveBackground.removeBackground(uploadFile, imglyConfig);
 
       setMessage('Processing image: Loading foreground...');
       const foregroundImage = new Image();
@@ -919,7 +774,7 @@ function App() {
 
           drawCombinedSensorBar(barCtx!, leftEyePoints, rightEyePoints);
 
-          
+
           drawResult(foregroundImage);
 
         });
@@ -949,72 +804,7 @@ function App() {
   }
 
   const processAnime = async () => {
-    // setIsProcessing(true); // Disable segment button while loading image
-    // setStatus("Loading image...");
-    // setDetectionCount("Detected Eyes: 0");
-
-    // // Clear previous results
-    // [originalCanvasRef, maskCanvasRef, overlayCanvasRef].forEach(ref => {
-    //   const canvas = ref.current;
-    //   if (canvas) {
-    //     const ctx = canvas.getContext('2d');
-    //     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    //     // Optionally reset canvas sizes to 0 or a default placeholder size
-    //     // canvas.width = 300; canvas.height = 150; // Example placeholder size
-    //   }
-    // });
-
-
-    // const reader = new FileReader();
-    // reader.onload = (e) => {
-    //   const img = new Image();
-    //   img.onload = () => {
-    //     setOriginalImageElement(img);
-    //     const shape = { width: img.naturalWidth, height: img.naturalHeight };
-    //     setOriginalImageShape(shape);
-
-    //     const originalCanvas = originalCanvasRef.current;
-    //     if (originalCanvas) {
-    //       const originalCtx = originalCanvas.getContext('2d');
-    //       originalCanvas.width = shape.width;
-    //       originalCanvas.height = shape.height;
-    //       originalCtx?.drawImage(img, 0, 0, shape.width, shape.height);
-    //     }
-
-    //     // Prepare other canvases (they'll be drawn on during segmentation)
-    //     [maskCanvasRef, overlayCanvasRef].forEach(ref => {
-    //       const canvas = ref.current;
-    //       if (canvas) {
-    //         canvas.width = shape.width;
-    //         canvas.height = shape.height;
-    //         const ctx = canvas.getContext('2d');
-    //         if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    //       }
-    //     });
-
-    //     setIsProcessing(false); // Re-enable segment button
-    //     setStatus("Image loaded. Click 'Segment Image'.");
-    //   };
-    //   img.onerror = () => {
-    //     setStatus("Error loading image file.");
-    //     setErrorModal("Could not load the selected image. Please try a different file.");
-    //     setIsProcessing(false);
-    //   }
-    //   if (e.target?.result) {
-    //     img.src = e.target.result as string;
-    //   } else {
-    //     setStatus("Error reading image file.");
-    //     setErrorModal("Could not read the selected image file.");
-    //     setIsProcessing(false);
-    //   }
-    // };
-    // reader.onerror = () => {
-    //   setStatus("Error reading file.");
-    //   setErrorModal("There was an error reading the file.");
-    //   setIsProcessing(false);
-    // };
-    // reader.readAsDataURL(file);
-
+    
 
     if (!originalImageElement || !ortSession) {
       setErrorModal("Please upload an image and wait for the model to load before segmenting.");
@@ -1041,8 +831,7 @@ function App() {
       setMessage('Processing image: Removing background (this may take a moment)...');
 
 
-      //const backgroundRemovedBlob = await imglyRemoveBackground.removeBackground(file, imglyConfig);
-      const backgroundRemovedBlob = await fetchImageAsFile(imageTempUrl.current!);
+      const backgroundRemovedBlob = await imglyRemoveBackground.removeBackground(uploadFile, imglyConfig);
 
 
 
@@ -1134,7 +923,7 @@ function App() {
         barCtx!.rotate(angle);
         barCtx!.fillStyle = 'black';
         barCtx!.fillRect(-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
-        console.log(midPointX, midPointY,-sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
+        console.log(midPointX, midPointY, -sensorWidth / 2, -sensorHeight / 2, sensorWidth, sensorHeight);
 
 
         drawResult(foregroundImage);
@@ -1193,57 +982,6 @@ function App() {
     }
 
 
-    // if (!originalImageElement || !ortSession) {
-    //   setErrorModal("Please upload an image and wait for the model to load before segmenting.");
-    //   return;
-    // }
-    // if (isProcessing) return; // Prevent multiple clicks
-
-    // setIsProcessing(true);
-    // setStatus("Processing image...");
-    // setDetectionCount("Detected Eyes: ...");
-
-    // try {
-    //   const inputTensor = await preprocess(originalImageElement);
-    //   const inputName = ortSession.inputNames[0];
-    //   const outputNames = ortSession.outputNames;
-    //   const feeds: any = { [inputName]: inputTensor };
-
-    //   setStatus("Running model inference...");
-    //   const results = await ortSession.run(feeds);
-
-    //   const detectionOutput = results[outputNames[0]];
-    //   const maskFeatures = results[outputNames[1]];
-
-    //   if (!detectionOutput || !maskFeatures) {
-    //     throw new Error("Model output is missing expected tensors.");
-    //   }
-    //   if (!(detectionOutput.data instanceof Float32Array) || !(maskFeatures.data instanceof Float32Array)) {
-    //     throw new Error("Model output data is not in Float32Array format as expected.");
-    //   }
-
-    //   setStatus("Post-processing segmentation (incl. NMS)...");
-    //   const { mask: finalMask, count: detectedCountNum, boxes: boundingBoxes } = postprocessSegmentationWithNMS(
-    //     detectionOutput.data as Float32Array,
-    //     detectionOutput.dims,
-    //     maskFeatures.data as Float32Array,
-    //     maskFeatures.dims,
-    //     originalImageShape
-    //   );
-
-    //   setDetectionCount(`Detected Eyes: ${detectedCountNum}`);
-    //   displayMask(finalMask, originalImageShape.width, originalImageShape.height);
-    //   displayOverlay(originalImageElement, finalMask, boundingBoxes, originalImageShape.width, originalImageShape.height);
-    //   setStatus("Segmentation complete!");
-
-    // } catch (e: any) {
-    //   console.error("Error during segmentation:", e);
-    //   setStatus(`Error: ${e.message}`);
-    //   setDetectionCount("Detected Eyes: Error");
-    //   setErrorModal(`An error occurred during segmentation: ${e.message}. Check console for details.`);
-    // } finally {
-    //   setIsProcessing(false);
-    // }
   };
 
   // --- Error Modal Component ---
@@ -1322,7 +1060,7 @@ function App() {
               <div className="flex items-center ps-3">
                 <input id="bg-color" type="color" value={bgColor} onChange={(e) => {
                   setBgColor(e.target.value);
-                  
+
                 }} disabled={isLoading} className="w-8 h-8 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 " />
                 <label htmlFor="bg-color" className="w-full py-3 ms-2 text-sm font-medium text-gray-900 ">Color</label>
               </div>
@@ -1339,7 +1077,7 @@ function App() {
         </div>
 
         <div id="statusContainer" className="text-center my-4">
-         
+
           <p
             id="messageArea"
             className={`font-medium min-h-[30px] ${isError ? 'text-red-500' : 'text-gray-700'}`}
@@ -1351,7 +1089,7 @@ function App() {
 
         <div className="w-full bg-gray-200 rounded-lg overflow-hidden shadow-inner relative">
           <canvas ref={canvasRef} id="canvas" className="w-full h-auto block rounded-lg"></canvas>
-           {isLoading && <div style={loaderStyle} data-testid="loader" className='absolute top-0 left-0 bottom-0 right-0 m-auto'></div>}
+          {isLoading && <div style={loaderStyle} data-testid="loader" className='absolute top-0 left-0 bottom-0 right-0 m-auto'></div>}
         </div>
 
         <div className="mt-6 text-center">
@@ -1373,64 +1111,6 @@ function App() {
       </footer>
     </div>
 
-    // <div className="container mx-auto p-4 font-sans bg-gray-50 min-h-screen">
-    //   {errorModal && <ErrorModal message={errorModal} onClose={() => setErrorModal(null)} />}
-    //   <header className="text-center mb-8">
-    //     <h1 className="text-4xl font-bold text-blue-600">Eye Segmentation Tool</h1>
-    //     <p className="text-gray-600">Upload an image to detect and segment eyes using ONNX Runtime.</p>
-    //   </header>
-
-    //   <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
-    //     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mb-4">
-    //       <div>
-    //         <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-1">
-    //           Upload Image
-    //         </label>
-    //         <input
-    //           type="file"
-    //           id="imageUpload"
-    //           ref={fileInputRef}
-    //           accept="image/*"
-    //           onChange={handleImageUpload}
-    //           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
-    //           disabled={isProcessing || !ortSession}
-    //         />
-    //       </div>
-    //       <button
-    //         onClick={handleProcess}
-    //         disabled={!originalImageElement || isProcessing || !ortSession}
-    //         className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-    //       >
-    //         {isProcessing && status.startsWith("Processing") ? 'Processing...' : 'Segment Image'}
-    //       </button>
-    //     </div>
-    //     <div className="text-sm text-gray-700">
-    //       <p id="status" className="mb-1">Status: <span className="font-semibold">{status}</span></p>
-    //       <p id="detectionCount" className="mb-1">Details: <span className="font-semibold">{detectionCount}</span></p>
-    //       {!ortSession && status.startsWith("Initializing") && <p className="text-yellow-600">Waiting for ONNX model to initialize...</p>}
-    //       {isProcessing && status.startsWith("Loading image") && <p className="text-blue-600">Loading your image, please wait...</p>}
-    //     </div>
-    //   </div>
-
-    //   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    //     <div className="bg-white p-4 rounded-lg shadow">
-    //       <h2 className="text-xl font-semibold text-gray-800 mb-3 text-center">Original Image</h2>
-    //       <canvas ref={originalCanvasRef} className="w-full h-auto rounded border border-gray-300 bg-gray-100 aspect-[4/3] object-contain"></canvas>
-    //     </div>
-    //     <div className="bg-white p-4 rounded-lg shadow">
-    //       <h2 className="text-xl font-semibold text-gray-800 mb-3 text-center">Segmentation Mask</h2>
-    //       <canvas ref={maskCanvasRef} className="w-full h-auto rounded border border-gray-300 bg-gray-100 aspect-[4/3] object-contain"></canvas>
-    //     </div>
-    //     <div className="bg-white p-4 rounded-lg shadow">
-    //       <h2 className="text-xl font-semibold text-gray-800 mb-3 text-center">Overlay</h2>
-    //       <canvas ref={overlayCanvasRef} className="w-full h-auto rounded border border-gray-300 bg-gray-100 aspect-[4/3] object-contain"></canvas>
-    //     </div>
-    //   </div>
-
-    //   <footer className="text-center mt-12 py-4 border-t border-gray-200">
-    //     <p className="text-sm text-gray-500">Eye Segmentation App powered by React, TypeScript, and ONNX Runtime.</p>
-    //   </footer>
-    // </div>
   )
 }
 
