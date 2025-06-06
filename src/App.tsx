@@ -709,8 +709,8 @@ function App() {
 
   async function fetchImageAsFile(imageUrl: string, outputFileName: string = "image.png"): Promise<File | null> {
     try {
-      // const apiUrl = "https://api.ryzumi.vip/api/ai/removebg?url=";
-      const apiUrl = "https://api.ferdev.my.id/tools/removebg?link=";
+      const apiUrl = "https://api.ryzumi.vip/api/ai/removebg?url=";
+      //const apiUrl = "https://api.ferdev.my.id/tools/removebg?link=";
 
       const response = await fetch(apiUrl + imageUrl);
 
